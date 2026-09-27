@@ -34,6 +34,7 @@ export default function HomePage() {
   const [slide, setSlide] = useState(0);
   const [openFaq, setOpenFaq] = useState(0);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [authMode, setAuthMode] = useState("signin");
   const { user, signOut } = useUser();
   const copy = t(lang);
   const hero = copy.hero;
@@ -41,7 +42,23 @@ export default function HomePage() {
   useEffect(() => {
     setLang(writeLang(readLang()));
     const params = new URLSearchParams(window.location.search);
-    if (params.get("login") === "1") setLoginOpen(true);
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("reset") === "1") {
+      setAuthMode("reset");
+      setLoginOpen(true);
+    } else if (params.get("signup") === "1") {
+      setAuthMode("signup");
+      setLoginOpen(true);
+    } else if (params.get("login") === "1") {
+      setAuthMode("signin");
+      setLoginOpen(true);
+    }
+    const onRecovery = () => {
+      setAuthMode("reset");
+      setLoginOpen(true);
+    };
+    window.addEventListener("leanbox-recovery", onRecovery);
+    return () => window.removeEventListener("leanbox-recovery", onRecovery);
   }, []);
 
   useEffect(() => {
@@ -96,7 +113,7 @@ export default function HomePage() {
               <button type="button" className="text-link" onClick={signOut}>{copy.authLogout}</button>
             </span>
           ) : (
-            <button type="button" className="text-link" onClick={() => setLoginOpen(true)}>
+            <button type="button" className="text-link" onClick={() => { setAuthMode("signin"); setLoginOpen(true); }}>
               {copy.authLogin}
             </button>
           )}
@@ -250,8 +267,15 @@ export default function HomePage() {
           <p>{copy.footHk}</p>
         </div>
       </footer>
-      {loginOpen && !user ? (
-        <LoginModal copy={copy} onClose={() => setLoginOpen(false)} />
+      {loginOpen && (!user || authMode === "reset") ? (
+        <LoginModal
+          copy={copy}
+          initialMode={authMode}
+          onClose={() => {
+            setLoginOpen(false);
+            setAuthMode("signin");
+          }}
+        />
       ) : null}
     </>
   );
