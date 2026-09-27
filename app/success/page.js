@@ -1,9 +1,12 @@
 export default function SuccessPage() {
   return (
-    <main className="wrap" style={{ padding: "80px 20px" }}>
-      <h1>Paid. Box is on the list.</h1>
-      <p className="lead">Stripe confirmed the checkout. We will confirm delivery window by email.</p>
-      <p><a className="btn primary" href="/">Back to menu</a></p>
+    <main className="hero" style={{ minHeight: "100vh" }}>
+      <div className="eyebrow">Checkout</div>
+      <h1>Paid.</h1>
+      <p className="sub">Stripe confirmed the order. We will email the delivery window.</p>
+      <div className="hero-actions">
+        <a className="link" href="/">Back to Leanbox →</a>
+      </div>
     </main>
   );
 }

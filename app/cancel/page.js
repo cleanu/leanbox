@@ -1,9 +1,12 @@
 export default function CancelPage() {
   return (
-    <main className="wrap" style={{ padding: "80px 20px" }}>
-      <h1>Checkout cancelled.</h1>
-      <p className="lead">Nothing was charged. Pick a box when you are ready.</p>
-      <p><a className="btn ghost" href="/">Back to menu</a></p>
+    <main className="hero" style={{ minHeight: "100vh" }}>
+      <div className="eyebrow">Checkout</div>
+      <h1>Nothing charged.</h1>
+      <p className="sub">Checkout was cancelled. The box is still here when you want it.</p>
+      <div className="hero-actions">
+        <a className="link" href="/">Back to menu →</a>
+      </div>
     </main>
   );
 }
