@@ -3,6 +3,7 @@
 import { products, formatHkd } from "../lib/products";
 import { LOGO_SRC, LOGO_MARK } from "../lib/logo";
 import { DEFAULT_LANG, readLang, writeLang, t, localizeProduct } from "../lib/i18n";
+import { useUser } from "../lib/useUser";
 import { useEffect, useState } from "react";
 
 function Photo({ src, label }) {
@@ -31,6 +32,7 @@ export default function HomePage() {
   const [error, setError] = useState("");
   const [slide, setSlide] = useState(0);
   const [openFaq, setOpenFaq] = useState(0);
+  const { user, signOut } = useUser();
   const copy = t(lang);
   const hero = copy.hero;
 
@@ -84,6 +86,14 @@ export default function HomePage() {
         </nav>
         <div className="top-actions">
           <LangSwitch lang={lang} onChange={changeLang} />
+          {user ? (
+            <span className="account">
+              <em>{user.email}</em>
+              <button type="button" className="text-link" onClick={signOut}>{copy.authLogout}</button>
+            </span>
+          ) : (
+            <a className="text-link" href="/login">{copy.authLogin}</a>
+          )}
           <a className="order-now" href="#plans">{copy.orderNow}</a>
         </div>
       </header>
