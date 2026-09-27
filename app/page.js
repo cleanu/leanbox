@@ -42,7 +42,6 @@ export default function HomePage() {
   useEffect(() => {
     setLang(writeLang(readLang()));
     const params = new URLSearchParams(window.location.search);
-    const params = new URLSearchParams(window.location.search);
     if (params.get("reset") === "1") {
       setAuthMode("reset");
       setLoginOpen(true);
