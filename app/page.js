@@ -4,6 +4,7 @@ import { products, formatHkd } from "../lib/products";
 import { LOGO_SRC, LOGO_MARK } from "../lib/logo";
 import { DEFAULT_LANG, readLang, writeLang, t, localizeProduct } from "../lib/i18n";
 import { useUser } from "../lib/useUser";
+import LoginModal from "../lib/LoginModal";
 import { useEffect, useState } from "react";
 
 function Photo({ src, label }) {
@@ -32,12 +33,15 @@ export default function HomePage() {
   const [error, setError] = useState("");
   const [slide, setSlide] = useState(0);
   const [openFaq, setOpenFaq] = useState(0);
+  const [loginOpen, setLoginOpen] = useState(false);
   const { user, signOut } = useUser();
   const copy = t(lang);
   const hero = copy.hero;
 
   useEffect(() => {
     setLang(writeLang(readLang()));
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("login") === "1") setLoginOpen(true);
   }, []);
 
   useEffect(() => {
@@ -92,7 +96,9 @@ export default function HomePage() {
               <button type="button" className="text-link" onClick={signOut}>{copy.authLogout}</button>
             </span>
           ) : (
-            <a className="text-link" href="/login">{copy.authLogin}</a>
+            <button type="button" className="text-link" onClick={() => setLoginOpen(true)}>
+              {copy.authLogin}
+            </button>
           )}
           <a className="order-now" href="#plans">{copy.orderNow}</a>
         </div>
@@ -244,6 +250,9 @@ export default function HomePage() {
           <p>{copy.footHk}</p>
         </div>
       </footer>
+      {loginOpen && !user ? (
+        <LoginModal copy={copy} onClose={() => setLoginOpen(false)} />
+      ) : null}
     </>
   );
 }
