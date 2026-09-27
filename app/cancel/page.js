@@ -1,12 +1,18 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { DEFAULT_LANG, readLang, writeLang, t } from "../../lib/i18n";
+
 export default function CancelPage() {
+  const [lang, setLang] = useState(DEFAULT_LANG);
+  useEffect(() => setLang(writeLang(readLang())), []);
+  const copy = t(lang);
   return (
-    <main className="hero" style={{ minHeight: "100vh" }}>
-      <div className="eyebrow">Checkout</div>
-      <h1>Nothing charged.</h1>
-      <p className="sub">Checkout was cancelled. The box is still here when you want it.</p>
-      <div className="hero-actions">
-        <a className="link" href="/">Back to menu →</a>
-      </div>
+    <main className="status-page">
+      <p className="status-kicker">{copy.cancelEyebrow}</p>
+      <h1>{copy.cancelTitle}</h1>
+      <p>{copy.cancelCopy}</p>
+      <a href="/">{copy.cancelBack}</a>
     </main>
   );
 }
