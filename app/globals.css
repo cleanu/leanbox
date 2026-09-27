@@ -20,7 +20,7 @@ html, body {
   letter-spacing: 0;
 }
 a { color: inherit; text-decoration: none; }
-button { font-family: inherit; cursor: pointer; }
+button { font-family: inherit; cursor: pointer; appearance: none; -webkit-appearance: none; background: none; border: 0; }
 img { max-width: 100%; display: block; }
 
 .section-title {
@@ -92,7 +92,9 @@ html[data-lang="zh"] footer h4 {
 }
 .status-page a { color: var(--sage); font-weight: 500; }
 .order-now {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid var(--sage);
   color: var(--sage);
   padding: 8px 16px;
@@ -222,7 +224,18 @@ html[data-lang="zh"] footer h4 {
   justify-content: space-between;
   gap: 16px;
 }
-.text-link { color: var(--sage); font-size: 13px; font-weight: 500; }
+.text-link {
+  color: var(--sage);
+  font-size: 13px;
+  font-weight: 500;
+  background: none;
+  border: 0;
+  padding: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline;
+  line-height: inherit;
+}
 .meal-strip {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -347,51 +360,82 @@ footer a, footer p { display: block; margin: 0 0 6px; color: var(--ink); }
 }
 .auth-lead { color: var(--muted); margin: 0 0 12px; }
 .auth-form {
-  width: min(380px, 92vw);
+  width: 100%;
   display: grid;
-  gap: 12px;
+  gap: 14px;
   text-align: left;
-  margin: 0 auto;
+  margin: 0;
 }
 .auth-form label { font-size: 13px; color: var(--ink); display: grid; gap: 6px; }
 .auth-form input {
+  width: 100%;
   border: 1px solid var(--line);
-  padding: 10px 12px;
+  padding: 12px 12px;
   font: inherit;
-  font-size: 15px;
+  font-size: 16px;
+  border-radius: 0;
+  background: #fff;
 }
-.auth-form .order-now { width: 100%; text-align: center; }
-.auth-switch { font-size: 13px; color: var(--muted); }
+.auth-form .order-now {
+  width: 100%;
+  text-align: center;
+  margin-top: 4px;
+}
+.auth-form .ghost-link {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 10px 0 2px;
+  color: var(--sage);
+  background: none;
+  border: 0;
+  font-size: 13px;
+}
+.auth-switch {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 16px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
 .modal-backdrop {
   position: fixed;
   inset: 0;
   z-index: 80;
   background: rgba(20, 21, 18, 0.55);
-  display: grid;
-  place-items: center;
-  padding: 20px;
-  animation: fadeIn 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
 }
 .modal-card {
   position: relative;
-  width: min(420px, 100%);
+  width: min(400px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow: auto;
   background: #fff;
-  padding: 36px 28px 28px;
+  padding: 28px 22px 24px;
   text-align: center;
   box-shadow: 0 24px 80px rgba(20, 21, 18, 0.28);
-  animation: popIn 0.22s ease;
 }
-.modal-logo { height: 48px; margin: 0 auto 8px; }
+.modal-logo { height: 44px; width: auto; margin: 0 auto 6px; }
 .modal-card h2 {
   font-family: "Bebas Neue", "Noto Sans TC", sans-serif;
-  font-size: 40px;
+  font-size: 36px;
   margin: 0 0 6px;
   color: var(--sage);
+  line-height: 1.1;
 }
+.auth-lead { color: var(--muted); margin: 0 0 16px; font-size: 14px; line-height: 1.45; }
 .modal-close {
   position: absolute;
-  top: 10px;
-  right: 14px;
+  top: 8px;
+  right: 10px;
+  width: 36px;
+  height: 36px;
   border: 0;
   background: none;
   font-size: 28px;
@@ -407,5 +451,12 @@ footer a, footer p { display: block; margin: 0 0 6px; color: var(--ink); }
     grid-template-columns: 1fr;
   }
   .hero-copy { left: 20px; right: 20px; bottom: 44px; }
-  .topbar { padding: 0 16px; }
+  .topbar {
+    padding: 0 12px;
+    height: 58px;
+    gap: 8px;
+  }
+  .brand img { height: 36px; }
+  .top-actions { gap: 8px; }
+  .order-now { padding: 6px 10px; font-size: 12px; letter-spacing: 0.02em; }
 }
