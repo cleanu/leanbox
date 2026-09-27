@@ -15,7 +15,7 @@ html, body {
   margin: 0;
   background: var(--paper);
   color: var(--charcoal);
-  font-family: Montserrat, "Helvetica Neue", sans-serif;
+  font-family: Montserrat, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", "Helvetica Neue", sans-serif;
   font-weight: 300;
   letter-spacing: 0;
 }
@@ -51,6 +51,46 @@ img { max-width: 100%; display: block; }
 .links a:hover { color: var(--sage); }
 .top-actions { display: flex; align-items: center; gap: 14px; }
 .lang { font-size: 12px; font-weight: 600; color: var(--charcoal); }
+.lang-switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b0b0b0;
+}
+.lang-switch button {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: #9a9a9a;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.lang-switch button.on { color: var(--sage); }
+html[data-lang="zh"] .section-title,
+html[data-lang="zh"] footer h4 {
+  letter-spacing: 0.12em;
+}
+.status-page {
+  min-height: 80vh;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  padding: 48px 20px;
+}
+.status-kicker {
+  color: var(--sage);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-size: 12px;
+}
+.status-page h1 {
+  font-family: "Bebas Neue", "Noto Sans TC", sans-serif;
+  font-size: 64px;
+  margin: 8px 0 12px;
+}
+.status-page a { color: var(--sage); font-weight: 500; }
 .order-now {
   display: inline-block;
   border: 1px solid var(--sage);
