@@ -1,12 +1,18 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { DEFAULT_LANG, readLang, writeLang, t } from "../../lib/i18n";
+
 export default function SuccessPage() {
+  const [lang, setLang] = useState(DEFAULT_LANG);
+  useEffect(() => setLang(writeLang(readLang())), []);
+  const copy = t(lang);
   return (
-    <main className="hero" style={{ minHeight: "100vh" }}>
-      <div className="eyebrow">Checkout</div>
-      <h1>Paid.</h1>
-      <p className="sub">Stripe confirmed the order. We will email the delivery window.</p>
-      <div className="hero-actions">
-        <a className="link" href="/">Back to Leanbox →</a>
-      </div>
+    <main className="status-page">
+      <p className="status-kicker">{copy.successEyebrow}</p>
+      <h1>{copy.successTitle}</h1>
+      <p>{copy.successCopy}</p>
+      <a href="/">{copy.successBack}</a>
     </main>
   );
 }
