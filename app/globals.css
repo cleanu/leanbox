@@ -322,6 +322,46 @@ footer a, footer p { display: block; margin: 0 0 6px; color: var(--ink); }
   text-transform: uppercase;
 }
 .err { color: #c23b2e; }
+.ok { color: var(--sage); }
+.account {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+.account em { font-style: normal; color: var(--ink); max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  padding: 48px 20px 80px;
+  gap: 12px;
+}
+.auth-page .brand img { height: 52px; margin: 0 auto 8px; }
+.auth-page h1 {
+  font-family: "Bebas Neue", "Noto Sans TC", sans-serif;
+  font-size: 48px;
+  margin: 0;
+  color: var(--sage);
+}
+.auth-lead { color: var(--muted); margin: 0 0 12px; }
+.auth-form {
+  width: min(380px, 92vw);
+  display: grid;
+  gap: 12px;
+  text-align: left;
+  margin: 0 auto;
+}
+.auth-form label { font-size: 13px; color: var(--ink); display: grid; gap: 6px; }
+.auth-form input {
+  border: 1px solid var(--line);
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 15px;
+}
+.auth-form .order-now { width: 100%; text-align: center; }
+.auth-switch { font-size: 13px; color: var(--muted); }
 
 @media (max-width: 900px) {
   .links { display: none; }
