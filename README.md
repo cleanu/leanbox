@@ -216,7 +216,7 @@ You need a paid Apple Developer account.
 
 The login and signup pages read `GET {SUPABASE_URL}/auth/v1/settings` (cached for 5 minutes) and **only render Google or Apple buttons for providers that are enabled**. Nothing fakes a successful sign-in. To force the buttons on or off, set `AUTH_PROVIDERS=google,apple` or `none`.
 
-Official button artwork: Apple and Google require their unmodified marks. Download them and save them as `public/brand/providers/apple.svg` and `google.svg`; `public/brand/providers/README.md` lists the links. Until then the buttons render text-only, styled to each brand's button guidelines.
+Official button artwork: Apple and Google require their unmodified marks. They live in `public/brand/providers/` as `apple.svg` and `google.png`; that folder's README says where each came from. If a file is missing, the button renders text-only, styled to its brand's button guidelines.
 
 ### 4.6 Account linking (Google ↔ email ↔ Apple)
 
@@ -388,7 +388,7 @@ Seed prices and COGS are placeholders. Edit them in **/admin/meals** and **/admi
 - `public/brand/logo.svg` and `mark.svg`: the logo and favicon.
 - `public/food/<meal-slug>.jpg`, `hero.jpg` and `placeholder.jpg`: meal photos, 4:5 portrait, at least 1200×1500. The included files are generated illustrations (`scripts/food-art/generate.py`).
 - `public/about/founder.jpg`: the founder portrait.
-- `public/brand/providers/apple.svg` and `google.svg`: the official sign-in marks.
+- `public/brand/providers/apple.svg` and `google.png`: the official sign-in marks.
 
 Meal photos can also be uploaded in **/admin/meals/[id]**. They go to Storage `meal-images/meals/…`, and `image_path` stores the object path.
 

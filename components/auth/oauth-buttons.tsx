@@ -9,8 +9,8 @@ import { cn } from "@/lib/utils";
 type Provider = "apple" | "google";
 
 /**
- * Official provider artwork goes in /public/brand/providers/{apple,google}.svg
- * (see the README there). Until then the buttons render text-only.
+ * Official provider artwork lives in /public/brand/providers/ (see the README there).
+ * If a file is missing the button renders text-only.
  */
 function ProviderMark({ provider }: { provider: Provider }) {
   const ref = useRef<HTMLImageElement>(null);
@@ -24,7 +24,7 @@ function ProviderMark({ provider }: { provider: Provider }) {
     // eslint-disable-next-line @next/next/no-img-element -- tiny static brand asset
     <img
       ref={ref}
-      src={`/brand/providers/${provider}.svg`}
+      src={provider === "google" ? "/brand/providers/google.png" : "/brand/providers/apple.svg"}
       alt=""
       aria-hidden
       width={provider === "apple" ? 16 : 18}

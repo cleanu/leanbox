@@ -63,7 +63,7 @@ export function UserMenu({ user }: { user: HeaderUser }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.98 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute right-0 top-[calc(100%+0.6rem)] w-64 origin-top-right overflow-hidden rounded-2xl border border-line bg-parchment p-2 shadow-[0_24px_60px_-20px_rgba(22,19,16,0.4)]"
+            className="absolute right-0 top-[calc(100%+0.6rem)] w-64 origin-top-right overflow-hidden rounded-2xl border border-line bg-parchment p-2 text-ink shadow-[0_24px_60px_-20px_rgba(22,19,16,0.4)]"
           >
             <div className="px-3 pb-3 pt-2">
               <p className="truncate font-serif text-base">{user.name || user.email}</p>
