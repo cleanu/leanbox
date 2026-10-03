@@ -8,7 +8,7 @@ const HKT = 8 * 3_600_000;
 const DAY = 86_400_000;
 
 export const ADMIN_ORDER_SELECT =
-  "id, order_number, status, kind, fulfillment_week, subtotal_cents, delivery_cents, discount_cents, total_cents, refunded_cents, paid_at, created_at, delivery_district, delivery_name, delivery_phone, customer_email, user_id, order_items(quantity, unit_price_cents, unit_cost_cents, meal_id, plan_id, name_snapshot)" as const;
+  "id, order_number, status, kind, fulfillment_week, subtotal_cents, delivery_cents, discount_cents, total_cents, refunded_cents, paid_at, created_at, delivery_district, delivery_name, delivery_phone, customer_email, user_id, kol_code_id, order_items(quantity, unit_price_cents, unit_cost_cents, meal_id, plan_id, name_snapshot)" as const;
 
 export type AdminOrder = {
   id: string;
@@ -28,6 +28,7 @@ export type AdminOrder = {
   delivery_phone: string;
   customer_email: string | null;
   user_id: string | null;
+  kol_code_id: string | null;
   order_items: { quantity: number; unit_price_cents: number; unit_cost_cents: number; meal_id: string | null; plan_id: string | null; name_snapshot: string }[];
 };
 
@@ -59,15 +60,27 @@ export function hktDateKey(iso: string | Date): string {
   return new Date(t).toISOString().slice(0, 10);
 }
 
+/** ?from=YYYY-MM-DD&to=YYYY-MM-DD (HKT, `to` inclusive) → [from, to) in UTC. Defaults to this month. */
+export function parseDateRange(sp: Record<string, string | string[] | undefined>) {
+  const ranges = hktRanges();
+  const fromParam = typeof sp.from === "string" ? hktDateToUtc(sp.from) : null;
+  const toParam = typeof sp.to === "string" ? hktDateToUtc(sp.to) : null;
+  const from = fromParam ?? ranges.month.from;
+  // `to` is inclusive in the UI → exclusive bound is the next day.
+  let to = toParam ? new Date(toParam.getTime() + DAY) : ranges.today.to;
+  if (to <= from) to = new Date(from.getTime() + DAY);
+  return { from, to, fromLabel: hktDateKey(from), toLabel: hktDateKey(new Date(to.getTime() - DAY)) };
+}
+
 /** Orders paid within [from, to). Capped at 5,000 rows — move to SQL views as volume grows. */
-export async function ordersPaidBetween(from: Date, to: Date): Promise<AdminOrder[]> {
-  const { data, error } = await createAdminClient()
+export async function ordersPaidBetween(from: Date, to: Date, opts: { kolOnly?: boolean } = {}): Promise<AdminOrder[]> {
+  let q = createAdminClient()
     .from("orders")
     .select(ADMIN_ORDER_SELECT)
     .gte("paid_at", from.toISOString())
-    .lt("paid_at", to.toISOString())
-    .order("paid_at", { ascending: true })
-    .limit(5000);
+    .lt("paid_at", to.toISOString());
+  if (opts.kolOnly) q = q.not("kol_code_id", "is", null);
+  const { data, error } = await q.order("paid_at", { ascending: true }).limit(5000);
   if (error) throw error;
   return (data ?? []) as AdminOrder[];
 }
@@ -92,14 +105,14 @@ export type Summary = {
   delivery: number;
   discounts: number;
   refunds: number;
-  grossProfit: number; // Σ(price − cost)×qty − refunds
+  grossProfit: number; // Σ(price − cost)×qty − discounts − refunds
   fees: number; // estimated card fees
   net: number; // GMV − refunds − fees
   netProfit: number; // grossProfit − fees
 };
 
 /**
- * Profit = Σ (unit_price − unit_cost) × qty over paid orders, minus refunds.
+ * Profit = Σ (unit_price − unit_cost) × qty over paid orders, minus discounts and refunds.
  * Orders count as paid once paid_at is set (later refunds are subtracted, not
  * excluded). Stripe fees are an estimate from STRIPE_FEE_BPS / _FIXED_CENTS.
  */
@@ -118,7 +131,7 @@ export function summarize(orders: AdminOrder[]): Summary {
       s.cogs += i.unit_cost_cents * i.quantity;
     }
   }
-  s.grossProfit = s.itemsRevenue - s.cogs - s.refunds;
+  s.grossProfit = s.itemsRevenue - s.cogs - s.discounts - s.refunds;
   s.net = s.gmv - s.refunds - s.fees;
   s.netProfit = s.grossProfit - s.fees;
   return s;
@@ -133,7 +146,11 @@ export function dailyRevenue(orders: AdminOrder[], from: Date, days: number) {
     if (!b) continue;
     b.revenue += o.total_cents - o.refunded_cents;
     b.orders += 1;
-    b.profit += o.order_items.reduce((s, i) => s + (i.unit_price_cents - i.unit_cost_cents) * i.quantity, 0) - o.refunded_cents - estimateStripeFeeCents(o.total_cents);
+    b.profit +=
+      o.order_items.reduce((s, i) => s + (i.unit_price_cents - i.unit_cost_cents) * i.quantity, 0) -
+      o.discount_cents -
+      o.refunded_cents -
+      estimateStripeFeeCents(o.total_cents);
   }
   return [...buckets.entries()].map(([date, v]) => ({ date, ...v }));
 }
@@ -152,6 +169,26 @@ export function byItem(orders: AdminOrder[]) {
     }
   }
   return [...rows.values()].sort((a, b) => b.sales - a.sales);
+}
+
+export type KolStats = { orders: number; customers: number; gross: number; discount: number; paid: number; refunds: number };
+
+/** Paid orders per KOL code. gross = before discount; paid = what customers paid. */
+export function byKolCode(orders: AdminOrder[]): Map<string, KolStats> {
+  const rows = new Map<string, KolStats & { users: Set<string> }>();
+  for (const o of orders) {
+    if (!o.paid_at || !o.kol_code_id) continue;
+    const r = rows.get(o.kol_code_id) ?? { orders: 0, customers: 0, gross: 0, discount: 0, paid: 0, refunds: 0, users: new Set<string>() };
+    r.orders += 1;
+    r.gross += o.total_cents + o.discount_cents;
+    r.discount += o.discount_cents;
+    r.paid += o.total_cents;
+    r.refunds += o.refunded_cents;
+    if (o.user_id) r.users.add(o.user_id);
+    r.customers = r.users.size;
+    rows.set(o.kol_code_id, r);
+  }
+  return rows;
 }
 
 export function statusCounts(orders: AdminOrder[]) {

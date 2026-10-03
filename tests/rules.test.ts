@@ -3,7 +3,8 @@ import { deliveryFeeCents, estimateStripeFeeCents } from "@/lib/config";
 import { isDistrictValue } from "@/lib/districts";
 import { formatHKD, parseHKDToCents } from "@/lib/money";
 import { safeNext } from "@/lib/env";
-import { checkoutSchema, normalizeHKPhone, signupSchema } from "@/lib/validation";
+import { kolDiscountCents, normalizeKolCode } from "@/lib/kol";
+import { checkoutSchema, kolCreateSchema, normalizeHKPhone, signupSchema } from "@/lib/validation";
 
 describe("money", () => {
   it("formats HKD cents", () => {
@@ -88,5 +89,31 @@ describe("safeNext (open-redirect guard)", () => {
     expect(safeNext("/\\evil.com")).toBe("/account");
     expect(safeNext("/auth/callback")).toBe("/account");
     expect(safeNext(null, "/")).toBe("/");
+  });
+});
+
+describe("KOL codes", () => {
+  it("normalises codes", () => {
+    expect(normalizeKolCode(" amy10 ")).toBe("AMY10");
+    expect(normalizeKolCode("AB")).toBeNull();
+    expect(normalizeKolCode("AMY-10")).toBeNull();
+    expect(normalizeKolCode("0f8fad5b-d9cb-469f-a165-70867728950e")).toBeNull(); // OAuth ?code= values
+  });
+
+  it("computes the discount", () => {
+    expect(kolDiscountCents({ code: "A10", percentOff: 10, amountOffCents: null }, 21_600)).toBe(2_160);
+    expect(kolDiscountCents({ code: "A15", percentOff: 15, amountOffCents: null }, 8_850)).toBe(1_328); // rounds to the cent
+    expect(kolDiscountCents({ code: "A50", percentOff: null, amountOffCents: 5_000 }, 21_600)).toBe(5_000);
+    expect(kolDiscountCents({ code: "A50", percentOff: null, amountOffCents: 5_000 }, 3_000)).toBe(3_000); // never below zero
+  });
+
+  it("validates the admin form", () => {
+    const ok = kolCreateSchema.parse({ instagram_handle: "@Amy.Eats", code: "amy10", discount_type: "percent", discount_value: "10" });
+    expect(ok).toEqual({ instagram_handle: "amy.eats", code: "AMY10", percent_off: 10, amount_off_cents: null });
+    const amount = kolCreateSchema.parse({ instagram_handle: "amy", code: "AMY50", discount_type: "amount", discount_value: "HK$50" });
+    expect(amount).toMatchObject({ percent_off: null, amount_off_cents: 5_000 });
+    expect(kolCreateSchema.safeParse({ instagram_handle: "amy", code: "AMY", discount_type: "percent", discount_value: "120" }).success).toBe(false);
+    expect(kolCreateSchema.safeParse({ instagram_handle: "amy", code: "AMY", discount_type: "amount", discount_value: "0" }).success).toBe(false);
+    expect(kolCreateSchema.safeParse({ instagram_handle: "amy eats!", code: "AMY", discount_type: "percent", discount_value: "10" }).success).toBe(false);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { byItem, dailyRevenue, hktDateKey, hktRanges, summarize, type AdminOrder } from "@/lib/admin/metrics";
+import { byItem, byKolCode, dailyRevenue, hktDateKey, hktRanges, summarize, type AdminOrder } from "@/lib/admin/metrics";
 
 const order = (over: Partial<AdminOrder>): AdminOrder => ({
   id: crypto.randomUUID(),
@@ -19,6 +19,7 @@ const order = (over: Partial<AdminOrder>): AdminOrder => ({
   delivery_phone: "+852 9123 4567",
   customer_email: null,
   user_id: null,
+  kol_code_id: null,
   order_items: [],
   ...over,
 });
@@ -54,6 +55,35 @@ describe("profit maths", () => {
     expect(s.fees).toBe(Math.round(21_600 * 0.029) + 235 + Math.round(49_000 * 0.029) + 235);
     expect(s.netProfit).toBe(s.grossProfit - s.fees);
     expect(s.net).toBe(s.gmv - s.refunds - s.fees);
+  });
+
+  it("subtracts KOL discounts from profit", () => {
+    const discounted = order({
+      subtotal_cents: 17_600,
+      delivery_cents: 4_000,
+      discount_cents: 2_160,
+      total_cents: 19_440,
+      order_items: [{ quantity: 2, unit_price_cents: 8_800, unit_cost_cents: 3_200, meal_id: "m1", plan_id: null, name_snapshot: "雞" }],
+    });
+    const s = summarize([discounted]);
+    expect(s.discounts).toBe(2_160);
+    expect(s.gmv).toBe(19_440);
+    expect(s.grossProfit).toBe(17_600 - 6_400 - 2_160);
+    expect(dailyRevenue([discounted], new Date("2026-09-27T16:00:00.000Z"), 1)[0].profit).toBe(s.netProfit);
+  });
+
+  it("totals sales per KOL code", () => {
+    const rows = byKolCode([
+      order({ kol_code_id: "k1", user_id: "u1", discount_cents: 1_000, total_cents: 9_000 }),
+      order({ kol_code_id: "k1", user_id: "u1", discount_cents: 1_000, total_cents: 9_000, refunded_cents: 9_000 }),
+      order({ kol_code_id: "k1", user_id: "u2", discount_cents: 500, total_cents: 4_500 }),
+      order({ kol_code_id: "k2", user_id: "u3", total_cents: 5_000 }),
+      order({ kol_code_id: "k1", paid_at: null, total_cents: 99_900 }), // unpaid: ignored
+      order({ user_id: "u4", total_cents: 7_000 }), // no code: ignored
+    ]);
+    expect(rows.get("k1")).toMatchObject({ orders: 3, customers: 2, gross: 25_000, discount: 2_500, paid: 22_500, refunds: 9_000 });
+    expect(rows.get("k2")).toMatchObject({ orders: 1, customers: 1, paid: 5_000 });
+    expect(rows.size).toBe(2);
   });
 
   it("groups by item", () => {

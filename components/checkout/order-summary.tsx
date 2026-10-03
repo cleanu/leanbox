@@ -5,6 +5,7 @@ import { useCart } from "@/components/cart/cart-provider";
 import { MealImage } from "@/components/menu/meal-image";
 import type { PublicPlan } from "@/lib/catalog/types";
 import { deliveryFeeCents } from "@/lib/config";
+import { kolDiscountCents, type KolDiscount } from "@/lib/kol";
 import { pick } from "@/lib/i18n-shared";
 import { formatHKD } from "@/lib/money";
 
@@ -15,12 +16,13 @@ export function useCheckoutTotals(plan: PublicPlan | null) {
   return { subtotal, delivery, total: subtotal + delivery };
 }
 
-export function OrderSummary({ plan }: { plan: PublicPlan | null }) {
+export function OrderSummary({ plan, kol = null }: { plan: PublicPlan | null; kol?: KolDiscount | null }) {
   const t = useTranslations("checkout");
   const tc = useTranslations("common");
   const locale = useLocale();
   const cart = useCart();
   const { subtotal, delivery, total } = useCheckoutTotals(plan);
+  const discount = kol ? kolDiscountCents(kol, total) : 0;
 
   return (
     <div>
@@ -63,10 +65,19 @@ export function OrderSummary({ plan }: { plan: PublicPlan | null }) {
           </dt>
           <dd className="numeral">{delivery ? formatHKD(delivery) : tc("free")}</dd>
         </div>
+        {discount > 0 ? (
+          <div className="flex justify-between text-olive-2">
+            <dt>
+              {tc("discount")}
+              <span className="ml-2 font-mono text-xs">{kol?.code}</span>
+            </dt>
+            <dd className="numeral">−{formatHKD(discount)}</dd>
+          </div>
+        ) : null}
         <div className="flex items-baseline justify-between border-t border-line pt-3">
           <dt className="font-medium">{tc("total")}</dt>
           <dd className="numeral text-2xl">
-            {formatHKD(total)}
+            {formatHKD(total - discount)}
             {plan ? <span className="ml-1 text-sm text-mute">{tc("perWeek")}</span> : null}
           </dd>
         </div>

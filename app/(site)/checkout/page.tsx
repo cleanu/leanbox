@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
 import { getLocale, getTranslations } from "next-intl/server";
+import { cookies } from "next/headers";
 import { CheckoutForm, CheckoutLoginWall } from "@/components/checkout/checkout-form";
 import { SetupScreen } from "@/components/setup/setup-screen";
 import { getProfile, getSessionUser } from "@/lib/auth/session";
 import { getActivePlans } from "@/lib/catalog/queries";
 import { isSupabaseConfigured } from "@/lib/env";
 import { isServiceRoleConfigured, isStripeConfigured } from "@/lib/env.server";
+import { KOL_COOKIE } from "@/lib/kol";
+import { findActiveKolCode, toKolDiscount } from "@/lib/kol.server";
 import { cutoffLabel, openDeliveryWeeks } from "@/lib/weeks";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -35,13 +38,14 @@ export default async function CheckoutPage({ searchParams }: PageProps<"/checkou
   if (!user) {
     body = <CheckoutLoginWall plan={plan} next={next} />;
   } else {
-    const profile = await getProfile();
+    const [profile, kol] = await Promise.all([getProfile(), findActiveKolCode((await cookies()).get(KOL_COOKIE)?.value ?? "")]);
     const phone = (profile?.phone ?? "").replace(/^\+852\s?/, "");
     body = (
       <CheckoutForm
         plan={plan}
         weeks={openDeliveryWeeks(new Date(), 2)}
         stripeReady={isStripeConfigured() && isServiceRoleConfigured()}
+        initialKol={kol ? toKolDiscount(kol) : null}
         defaults={{
           name: profile?.full_name ?? "",
           phone,

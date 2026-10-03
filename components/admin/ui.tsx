@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { buttonClass } from "@/components/ui/button";
 import { STATUS_LABEL_ZH, statusTone } from "@/lib/orders/status";
 import type { OrderStatus } from "@/lib/supabase/database.types";
 import { cn } from "@/lib/utils";
@@ -70,6 +71,24 @@ export function FieldRow({ label, children, hint, error, htmlFor }: { label: str
   );
 }
 
+/** GET form for ?from=&to= (HKT dates, `to` inclusive) — pair with parseDateRange. */
+export function DateRangeForm({ from, to }: { from: string; to: string }) {
+  return (
+    <form className="flex flex-wrap items-end gap-2">
+      <label className="flex flex-col gap-1 text-xs text-mute">
+        由
+        <input type="date" name="from" defaultValue={from} className="field h-10 py-0 text-sm" />
+      </label>
+      <label className="flex flex-col gap-1 text-xs text-mute">
+        至
+        <input type="date" name="to" defaultValue={to} className="field h-10 py-0 text-sm" />
+      </label>
+      <button type="submit" className={buttonClass({ size: "sm", className: "h-10" })}>
+        套用
+      </button>
+    </form>
+  );
+}
 
 export function AdminStatusBadge({ status }: { status: OrderStatus }) {
   return <Badge tone={statusTone(status)}>{STATUS_LABEL_ZH[status]}</Badge>;

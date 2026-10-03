@@ -1,9 +1,25 @@
 import type { NextRequest } from "next/server";
+import { KOL_COOKIE, normalizeKolCode } from "@/lib/kol";
 import { updateSession } from "@/lib/supabase/proxy";
 
 // Next.js 16 renamed middleware.ts → proxy.ts (Node.js runtime).
 export async function proxy(request: NextRequest) {
-  return updateSession(request);
+  const response = await updateSession(request);
+
+  // KOL links (/?code=AMY10) remember the code for checkout; the last link clicked wins.
+  // /auth/* is skipped because OAuth callbacks also use ?code=.
+  const { pathname, searchParams } = request.nextUrl;
+  const code = pathname.startsWith("/auth") ? null : normalizeKolCode(searchParams.get("code") ?? "");
+  if (code) {
+    response.cookies.set(KOL_COOKIE, code, {
+      maxAge: 60 * 60 * 24 * 30,
+      path: "/",
+      sameSite: "lax",
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+    });
+  }
+  return response;
 }
 
 export const config = {

@@ -1,5 +1,7 @@
 import { z } from "zod";
 import { isDistrictValue } from "./districts";
+import { KOL_CODE_RE } from "./kol";
+import { parseHKDToCents } from "./money";
 import { MEAL_TAGS } from "./tags";
 
 /** Normalise HK numbers to "+852 XXXX XXXX". Accepts spaces, dashes, +852 / 852 prefix. */
@@ -162,6 +164,43 @@ export const planFormSchema = z.object({
   is_featured: checkbox,
   is_active: checkbox,
   sort_order: intField(-10_000, 10_000),
+});
+
+const instagramHandle = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .transform((v) => v.replace(/^@/, ""))
+  .pipe(z.string().regex(/^[a-z0-9._]{1,30}$/, { error: "Instagram 帳號只可包含英文、數字、. 及 _（最多 30 字）" }));
+
+export const kolCreateSchema = z
+  .object({
+    instagram_handle: instagramHandle,
+    code: z.string().trim().toUpperCase().regex(KOL_CODE_RE, { error: "折扣碼需為 3–20 個英文字母或數字" }),
+    discount_type: z.enum(["percent", "amount"]),
+    discount_value: z.string().trim(),
+  })
+  .transform(({ discount_type, discount_value, ...rest }, ctx) => {
+    if (discount_type === "percent") {
+      const pct = Number(discount_value);
+      if (!Number.isInteger(pct) || pct < 1 || pct > 100) {
+        ctx.addIssue({ code: "custom", path: ["discount_value"], message: "百分比需為 1–100 的整數" });
+        return z.NEVER;
+      }
+      return { ...rest, percent_off: pct, amount_off_cents: null };
+    }
+    const cents = parseHKDToCents(discount_value);
+    if (!cents) {
+      ctx.addIssue({ code: "custom", path: ["discount_value"], message: "金額格式不正確" });
+      return z.NEVER;
+    }
+    return { ...rest, percent_off: null, amount_off_cents: cents };
+  });
+
+export const kolUpdateSchema = z.object({
+  id: z.uuid(),
+  instagram_handle: instagramHandle,
+  is_active: checkbox,
 });
 
 /** Flatten zod issues to { field: messageKey }. */

@@ -196,5 +196,27 @@ await as("authenticated", alice, async () => {
 });
 await expectError("stripe_events hidden from clients", as("authenticated", adminId, () => db.query("select * from public.stripe_events")));
 
+// KOL codes: admin-only, exactly one discount type, orders link to them
+const { rows: kolRows } = await as("service_role", null, () =>
+  db.query(`insert into public.kol_codes (instagram_handle, code, percent_off, stripe_coupon_id, stripe_promotion_code_id)
+            values ('amy.eats', 'AMY10', 10, 'co_test', 'promo_test') returning id`),
+);
+await as("service_role", null, () => db.query("update public.orders set kol_code_id = $1 where id = $2", [kolRows[0].id, orderId]));
+ok("order links to a KOL code");
+await as("authenticated", alice, async () => {
+  const { rows } = await db.query("select * from public.kol_codes");
+  rows.length === 0 ? ok("customers cannot read KOL codes") : fail("KOL codes leaked");
+});
+await as("authenticated", adminId, async () => {
+  const { rows } = await db.query("select code from public.kol_codes");
+  rows.length === 1 ? ok("admin reads KOL codes") : fail("admin reads KOL codes");
+});
+await expectError("admin cannot write KOL codes from the client", as("authenticated", adminId, () =>
+  db.query("insert into public.kol_codes (instagram_handle, code, percent_off, stripe_coupon_id, stripe_promotion_code_id) values ('x', 'XYZ', 5, 'co', 'promo_x')")));
+await expectError("KOL code needs exactly one discount type", as("service_role", null, () =>
+  db.query("insert into public.kol_codes (instagram_handle, code, percent_off, amount_off_cents, stripe_coupon_id, stripe_promotion_code_id) values ('x', 'BOTH', 10, 500, 'co', 'promo_b')")));
+await expectError("KOL codes are stored uppercase", as("service_role", null, () =>
+  db.query("insert into public.kol_codes (instagram_handle, code, percent_off, stripe_coupon_id, stripe_promotion_code_id) values ('x', 'amy20', 10, 'co', 'promo_l')")));
+
 console.log(failures ? `\n${failures} check(s) failed` : "\nAll database checks passed");
 process.exit(failures ? 1 : 0);

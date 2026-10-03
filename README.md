@@ -329,6 +329,14 @@ Running it twice is a no-op. Webhook event IDs are also stored in `stripe_events
 - Each renewal (`invoice.paid`, `billing_reason = subscription_cycle`) creates the next week's order. It copies the last delivery details and is idempotent via the unique `stripe_invoice_id`.
 - `customer.subscription.updated` / `deleted` keep the status in sync.
 
+**KOL discount codes** (`/admin/kol`):
+- Admins create a code (e.g. `AMY10`) for an Instagram account, as % or HK$ off. This creates a Stripe Coupon (`duration: forever`) plus Promotion Code, and a `kol_codes` row. Stripe coupons can't change amount, so to change a discount you deactivate the code and create a new one.
+- Customers enter the code at checkout, or open the KOL's link `/?code=AMY10`. `proxy.ts` stores that code in a 30-day cookie, and checkout pre-fills it; the last link clicked wins.
+- `startCheckout()` re-checks the code, stores `orders.kol_code_id`, and passes the promotion code to Stripe. On payment, Stripe's actual discount and total overwrite the estimate. Plans stay discounted every week, and each renewal order inherits the KOL while Stripe still discounts it.
+- The report counts paid orders by payment date: orders, customers, sales before discount, discount, amount paid and refunds, plus each KOL's order list.
+- Deactivating a code stops new uses. Customers already subscribed with it keep the discount; remove the coupon from their subscription in Stripe to end it.
+- Codes are created in whichever Stripe mode the keys point at. After switching to live keys, create the codes again.
+
 **Order statuses:** 待付款 `pending_payment` → 已付款 `paid` → 準備中 `preparing` → 送遞中 `out_for_delivery` → 已送達 `delivered`, plus 已取消 `cancelled` and 已退款 `refunded`. Customers see a timeline at `/account/orders/[id]`.
 
 **Emails:** v1 relies on Supabase auth emails and **Stripe receipts**. Turn those on under **Settings → Customer emails → Successful payments**. Branded order emails are marked `TODO(email)` in the code, ready for Resend or Postmark.

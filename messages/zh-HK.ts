@@ -282,6 +282,11 @@ const zhHK = {
     browse: "瀏覽本週餐單",
     stripeMissing: "Stripe 尚未設定，暫時未能付款。請參考 README 設定 STRIPE_SECRET_KEY。",
     freeDeliveryNote: "滿 HK$400 免運費",
+    codeLabel: "折扣碼",
+    codeApply: "套用",
+    codeApplied: "已套用折扣碼 {code}",
+    codeRemove: "移除",
+    codeInvalid: "折扣碼無效或已停用",
     errors: {
       name: "請輸入姓名",
       phone: "請輸入有效的香港電話號碼（8 位數字）",
@@ -292,6 +297,7 @@ const zhHK = {
       stock: "「{name}」本週只餘 {count} 份，請調整數量",
       inactive: "「{name}」已下架，請從餐盒移除",
       plan: "找不到所選計劃",
+      code: "折扣碼已失效，請移除後再試",
       stripe: "未能建立付款，請稍後再試"
     }
   },

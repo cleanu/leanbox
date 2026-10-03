@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart3, ExternalLink, LayoutDashboard, Package, Soup, Tags, Users } from "lucide-react";
+import { BarChart3, ExternalLink, LayoutDashboard, Megaphone, Package, Soup, Tags, Users } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoMark } from "@/components/ui/logo";
@@ -12,6 +12,7 @@ const NAV = [
   { href: "/admin/meals", label: "餐點", icon: Soup },
   { href: "/admin/plans", label: "計劃", icon: Tags },
   { href: "/admin/customers", label: "客戶", icon: Users },
+  { href: "/admin/kol", label: "KOL", icon: Megaphone },
   { href: "/admin/finance", label: "財務", icon: BarChart3 },
 ];
 

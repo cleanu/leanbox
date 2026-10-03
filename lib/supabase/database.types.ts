@@ -192,6 +192,7 @@ export type Database = {
           user_id: string | null;
           cart_id: string | null;
           plan_id: string | null;
+          kol_code_id: string | null;
           kind: "one_time" | "subscription";
           status: OrderStatus;
           fulfillment_week: string;
@@ -224,6 +225,7 @@ export type Database = {
           user_id?: string | null;
           cart_id?: string | null;
           plan_id?: string | null;
+          kol_code_id?: string | null;
           kind?: "one_time" | "subscription";
           status?: OrderStatus;
           fulfillment_week: string;
@@ -255,6 +257,7 @@ export type Database = {
         Relationships: [
           { foreignKeyName: "orders_plan_id_fkey"; columns: ["plan_id"]; isOneToOne: false; referencedRelation: "plans"; referencedColumns: ["id"] },
           { foreignKeyName: "orders_cart_id_fkey"; columns: ["cart_id"]; isOneToOne: false; referencedRelation: "carts"; referencedColumns: ["id"] },
+          { foreignKeyName: "orders_kol_code_id_fkey"; columns: ["kol_code_id"]; isOneToOne: false; referencedRelation: "kol_codes"; referencedColumns: ["id"] },
         ];
       };
       order_items: {
@@ -326,6 +329,34 @@ export type Database = {
         Relationships: [
           { foreignKeyName: "subscriptions_plan_id_fkey"; columns: ["plan_id"]; isOneToOne: false; referencedRelation: "plans"; referencedColumns: ["id"] },
         ];
+      };
+      kol_codes: {
+        Row: {
+          id: string;
+          instagram_handle: string;
+          code: string;
+          percent_off: number | null;
+          amount_off_cents: number | null;
+          stripe_coupon_id: string;
+          stripe_promotion_code_id: string;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          instagram_handle: string;
+          code: string;
+          percent_off?: number | null;
+          amount_off_cents?: number | null;
+          stripe_coupon_id: string;
+          stripe_promotion_code_id: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["kol_codes"]["Insert"]>;
+        Relationships: [];
       };
       stripe_events: {
         Row: { id: string; type: string; received_at: string; processed_at: string | null };

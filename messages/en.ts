@@ -281,6 +281,11 @@ const en: Messages = {
     browse: "See this week's menu",
     stripeMissing: "Stripe isn't configured yet, so payment is unavailable. See the README to set STRIPE_SECRET_KEY.",
     freeDeliveryNote: "Free delivery from HK$400",
+    codeLabel: "Discount code",
+    codeApply: "Apply",
+    codeApplied: "Code {code} applied",
+    codeRemove: "Remove",
+    codeInvalid: "That code isn't valid or has ended",
     errors: {
       name: "Please enter your name",
       phone: "Please enter a valid 8-digit Hong Kong number",
@@ -291,6 +296,7 @@ const en: Messages = {
       stock: "Only {count} of “{name}” left this week — please adjust",
       inactive: "“{name}” is no longer available — please remove it",
       plan: "That plan couldn't be found",
+      code: "That discount code is no longer valid — remove it and try again",
       stripe: "Couldn't start payment. Please try again shortly."
     }
   },

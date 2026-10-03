@@ -1,7 +1,6 @@
 import { SalesCogsChart } from "@/components/admin/charts";
-import { AdminPageHeader, AdminStatusBadge, Panel, StatTile, Table, Td, Th } from "@/components/admin/ui";
-import { buttonClass } from "@/components/ui/button";
-import { byItem, dailyRevenue, hktDateKey, hktDateToUtc, hktRanges, ordersCreatedBetween, ordersPaidBetween, statusCounts, summarize } from "@/lib/admin/metrics";
+import { AdminPageHeader, AdminStatusBadge, DateRangeForm, Panel, StatTile, Table, Td, Th } from "@/components/admin/ui";
+import { byItem, dailyRevenue, ordersCreatedBetween, ordersPaidBetween, parseDateRange, statusCounts, summarize } from "@/lib/admin/metrics";
 import { requireAdmin } from "@/lib/auth/session";
 import { feeConfig } from "@/lib/config";
 import { formatHKD } from "@/lib/money";
@@ -17,13 +16,7 @@ const pct = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)}%` : "�
 export default async function AdminFinancePage({ searchParams }: PageProps<"/admin/finance">) {
   await requireAdmin();
   const sp = await searchParams;
-  const ranges = hktRanges();
-  const fromParam = typeof sp.from === "string" ? hktDateToUtc(sp.from) : null;
-  const toParam = typeof sp.to === "string" ? hktDateToUtc(sp.to) : null;
-  const from = fromParam ?? ranges.month.from;
-  // `to` is inclusive in the UI → exclusive bound is the next day.
-  let to = toParam ? new Date(toParam.getTime() + DAY) : ranges.today.to;
-  if (to <= from) to = new Date(from.getTime() + DAY);
+  const { from, to, fromLabel, toLabel } = parseDateRange(sp);
   const days = Math.min(370, Math.round((to.getTime() - from.getTime()) / DAY));
 
   const [paid, created] = await Promise.all([ordersPaidBetween(from, to), ordersCreatedBetween(from, to)]);
@@ -31,29 +24,13 @@ export default async function AdminFinancePage({ searchParams }: PageProps<"/adm
   const daily = dailyRevenue(paid, from, days).filter((d) => d.orders > 0);
   const items = byItem(paid);
   const statuses = statusCounts(created);
-  const fromLabel = hktDateKey(from);
-  const toLabel = hktDateKey(new Date(to.getTime() - DAY));
 
   return (
     <div className="space-y-8">
       <AdminPageHeader
         title="財務"
         description={`${fromLabel} 至 ${toLabel}（香港時間，以付款時間計）`}
-        actions={
-          <form className="flex flex-wrap items-end gap-2">
-            <label className="flex flex-col gap-1 text-xs text-mute">
-              由
-              <input type="date" name="from" defaultValue={fromLabel} className="field h-10 py-0 text-sm" />
-            </label>
-            <label className="flex flex-col gap-1 text-xs text-mute">
-              至
-              <input type="date" name="to" defaultValue={toLabel} className="field h-10 py-0 text-sm" />
-            </label>
-            <button type="submit" className={buttonClass({ size: "sm", className: "h-10" })}>
-              套用
-            </button>
-          </form>
-        }
+        actions={<DateRangeForm from={fromLabel} to={toLabel} />}
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

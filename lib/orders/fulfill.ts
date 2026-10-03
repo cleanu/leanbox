@@ -14,6 +14,12 @@ export async function fulfillCheckoutSession(session: Stripe.Checkout.Session): 
   if (session.payment_status !== "paid" && session.payment_status !== "no_payment_required") return false;
 
   const admin = createAdminClient();
+  // KOL codes: record what Stripe actually discounted and charged.
+  const discount = session.total_details?.amount_discount ?? 0;
+  if (discount > 0 && session.amount_total != null) {
+    await admin.from("orders").update({ discount_cents: discount, total_cents: session.amount_total }).eq("id", orderId);
+  }
+
   const subscriptionId = idOf(session.subscription);
   const { data: fulfilled, error } = await admin.rpc("fulfill_order", {
     p_order_id: orderId,
@@ -82,6 +88,8 @@ export async function createRenewalOrder(invoice: Stripe.Invoice): Promise<void>
     ? await admin.from("plans").select("*").eq("id", previous.plan_id).maybeSingle()
     : { data: null };
   const amount = invoice.amount_paid;
+  // KOL coupons discount every week; keep the pre-discount price on the order, like first orders.
+  const discount = (invoice.total_discount_amounts ?? []).reduce((sum, d) => sum + d.amount, 0);
   const [week] = openDeliveryWeeks(new Date(), 1);
 
   const { data: order, error } = await admin
@@ -89,9 +97,11 @@ export async function createRenewalOrder(invoice: Stripe.Invoice): Promise<void>
     .insert({
       user_id: previous.user_id,
       plan_id: previous.plan_id,
+      kol_code_id: discount > 0 ? previous.kol_code_id : null,
       kind: "subscription",
       fulfillment_week: week.id,
-      subtotal_cents: amount,
+      subtotal_cents: amount + discount,
+      discount_cents: discount,
       total_cents: amount,
       customer_email: previous.customer_email,
       stripe_subscription_id: subscriptionId,
@@ -115,7 +125,7 @@ export async function createRenewalOrder(invoice: Stripe.Invoice): Promise<void>
     name_snapshot: plan?.name_zh ?? planItem?.name_snapshot ?? "每週計劃",
     name_en_snapshot: plan?.name_en ?? planItem?.name_en_snapshot ?? "Weekly plan",
     quantity: 1,
-    unit_price_cents: amount,
+    unit_price_cents: amount + discount,
     unit_cost_cents: plan?.cost_cents ?? planItem?.unit_cost_cents ?? 0,
   });
 

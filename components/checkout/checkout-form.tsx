@@ -1,14 +1,15 @@
 "use client";
 
-import { Lock } from "lucide-react";
+import { Lock, Tag } from "lucide-react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
-import { useActionState, useMemo, useState } from "react";
-import { startCheckout, type CheckoutState } from "@/actions/checkout";
+import { useActionState, useMemo, useState, useTransition } from "react";
+import { previewKolCode, startCheckout, type CheckoutState } from "@/actions/checkout";
 import { useCart } from "@/components/cart/cart-provider";
-import { ButtonLink } from "@/components/ui/button";
+import { ButtonLink, buttonClass } from "@/components/ui/button";
 import { FieldError, FormAlert, Label, SubmitButton } from "@/components/ui/form";
 import type { PublicPlan } from "@/lib/catalog/types";
+import type { KolDiscount } from "@/lib/kol";
 import { REGIONS, type Region } from "@/lib/districts";
 import { cn } from "@/lib/utils";
 import { formatWeekRange, formatHKT, type DeliveryWeek } from "@/lib/weeks";
@@ -169,20 +170,87 @@ function DeliveryFields({
   );
 }
 
+/** KOL discount code. Only the applied code is submitted (hidden input in CheckoutForm). */
+function KolCodeField({ kol, onChange }: { kol: KolDiscount | null; onChange: (kol: KolDiscount | null) => void }) {
+  const t = useTranslations("checkout");
+  const tc = useTranslations("common");
+  const [input, setInput] = useState("");
+  const [invalid, setInvalid] = useState(false);
+  const [pending, startTransition] = useTransition();
+
+  if (kol) {
+    return (
+      <div className="flex items-center justify-between gap-3 rounded-xl bg-olive-soft px-4 py-3 text-sm text-olive-2">
+        <span className="flex items-center gap-2">
+          <Tag className="size-4" aria-hidden />
+          {t("codeApplied", { code: kol.code })}
+        </span>
+        <button type="button" onClick={() => onChange(null)} className="text-xs underline underline-offset-2">
+          {t("codeRemove")}
+        </button>
+      </div>
+    );
+  }
+
+  const apply = () =>
+    startTransition(async () => {
+      const result = await previewKolCode(input);
+      setInvalid(!result);
+      if (result) onChange(result);
+    });
+
+  return (
+    <div>
+      <Label htmlFor="kolCodeInput" optional={tc("optional")}>
+        {t("codeLabel")}
+      </Label>
+      <div className="flex gap-2">
+        <input
+          id="kolCodeInput"
+          value={input}
+          onChange={(e) => {
+            setInput(e.target.value);
+            setInvalid(false);
+          }}
+          onKeyDown={(e) => {
+            // Enter applies the code instead of submitting the checkout.
+            if (e.key === "Enter") {
+              e.preventDefault();
+              if (input.trim()) apply();
+            }
+          }}
+          autoComplete="off"
+          autoCapitalize="characters"
+          className="field h-11 py-0 font-mono uppercase"
+          aria-invalid={invalid}
+          aria-describedby="kolCode-error"
+        />
+        <button type="button" onClick={apply} disabled={!input.trim() || pending} className={buttonClass({ variant: "outline", className: "shrink-0 disabled:opacity-50" })}>
+          {t("codeApply")}
+        </button>
+      </div>
+      <FieldError id="kolCode-error">{invalid ? t("codeInvalid") : null}</FieldError>
+    </div>
+  );
+}
+
 export function CheckoutForm({
   plan,
   defaults,
   weeks,
   stripeReady,
+  initialKol,
 }: {
   plan: PublicPlan | null;
   defaults: CheckoutDefaults;
   weeks: DeliveryWeek[];
   stripeReady: boolean;
+  initialKol: KolDiscount | null;
 }) {
   const t = useTranslations("checkout");
   const cart = useCart();
   const [state, action] = useActionState<CheckoutState, FormData>(startCheckout, {});
+  const [kol, setKol] = useState(initialKol);
 
   const isEmpty = !plan && cart.count === 0;
   if (isEmpty && !cart.isSyncing) {
@@ -200,6 +268,7 @@ export function CheckoutForm({
     <form action={action} className="grid gap-14 lg:grid-cols-12" noValidate>
       <input type="hidden" name="mode" value={plan ? "plan" : "cart"} />
       <input type="hidden" name="planId" value={plan?.id ?? ""} />
+      <input type="hidden" name="kolCode" value={kol?.code ?? ""} />
 
       {/* Keyed by submission so fields re-mount with what was submitted after React resets the form. */}
       <DeliveryFields key={state.nonce ?? 0} values={state.values ?? defaults} weeks={weeks} fields={state.fields} />
@@ -211,10 +280,11 @@ export function CheckoutForm({
             {t("summaryTitle")}
           </h2>
           <div className="mt-6">
-            <OrderSummary plan={plan} />
+            <OrderSummary plan={plan} kol={kol} />
           </div>
 
           <div className="mt-6 space-y-4">
+            <KolCodeField kol={kol} onChange={setKol} />
             {state.error ? (
               <FormAlert>{t(`errors.${state.error}`, { name: state.errorValues?.name ?? "", count: state.errorValues?.count ?? 0 })}</FormAlert>
             ) : null}

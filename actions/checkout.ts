@@ -8,6 +8,8 @@ import { getActiveCartId, readCartLines } from "@/lib/cart/server";
 import { deliveryFeeCents } from "@/lib/config";
 import { siteUrl } from "@/lib/env";
 import { isServiceRoleConfigured, isStripeConfigured } from "@/lib/env.server";
+import { kolDiscountCents, type KolDiscount } from "@/lib/kol";
+import { findActiveKolCode, toKolDiscount } from "@/lib/kol.server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { TablesInsert } from "@/lib/supabase/database.types";
@@ -16,7 +18,7 @@ import { checkoutSchema, fieldErrors } from "@/lib/validation";
 import { isWeekOpen } from "@/lib/weeks";
 import { orderRef } from "@/lib/utils";
 
-export type CheckoutErrorKey = "name" | "phone" | "district" | "address" | "week" | "empty" | "stock" | "inactive" | "plan" | "stripe";
+export type CheckoutErrorKey = "name" | "phone" | "district" | "address" | "week" | "empty" | "stock" | "inactive" | "plan" | "code" | "stripe";
 
 export type CheckoutValues = {
   name: string;
@@ -38,6 +40,13 @@ export type CheckoutState = {
 };
 
 type ItemDraft = Omit<TablesInsert<"order_items">, "order_id">;
+
+/** Checks a KOL code for the checkout summary. The code is checked again when the order is placed. */
+export async function previewKolCode(input: string): Promise<KolDiscount | null> {
+  if (!(await getSessionUser())) return null;
+  const row = await findActiveKolCode(input);
+  return row ? toKolDiscount(row) : null;
+}
 
 /**
  * Validates the delivery form + cart (or plan) on the server, snapshots a
@@ -157,6 +166,11 @@ async function runCheckout(_prev: CheckoutState, formData: FormData): Promise<Ch
     }
   }
 
+  const codeInput = String(formData.get("kolCode") ?? "");
+  const kol = codeInput ? await findActiveKolCode(codeInput) : null;
+  if (codeInput && !kol) return { error: "code" };
+  const discount = kol ? kolDiscountCents(toKolDiscount(kol), subtotal + delivery) : 0;
+
   // Remember delivery details for next time.
   if (input.saveDefault) {
     await supabase
@@ -200,12 +214,13 @@ async function runCheckout(_prev: CheckoutState, formData: FormData): Promise<Ch
       user_id: user.id,
       cart_id: cartId,
       plan_id: planId,
+      kol_code_id: kol?.id ?? null,
       kind: input.mode === "plan" ? "subscription" : "one_time",
       fulfillment_week: input.week,
       subtotal_cents: subtotal,
       delivery_cents: delivery,
-      discount_cents: 0,
-      total_cents: subtotal + delivery,
+      discount_cents: discount,
+      total_cents: subtotal + delivery - discount,
       customer_email: user.email ?? profile?.contact_email ?? null,
       delivery_name: input.name,
       delivery_phone: input.phone,
@@ -248,6 +263,8 @@ async function runCheckout(_prev: CheckoutState, formData: FormData): Promise<Ch
         success_url: siteUrl("/account/orders?success=1&session_id={CHECKOUT_SESSION_ID}"),
         cancel_url: siteUrl(input.mode === "plan" ? `/checkout?plan=${planId}` : "/checkout"),
         expires_at: Math.floor(Date.now() / 1000) + 60 * 60,
+        // KOL coupons are "forever", so plans stay discounted every week.
+        ...(kol ? { discounts: [{ promotion_code: kol.stripe_promotion_code_id }] } : {}),
         ...(input.mode === "plan"
           ? { subscription_data: { metadata, description } }
           : { payment_intent_data: { metadata, description } }),
